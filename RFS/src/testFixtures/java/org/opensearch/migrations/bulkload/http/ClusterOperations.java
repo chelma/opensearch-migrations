@@ -5,6 +5,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 
+import org.opensearch.migrations.bulkload.common.OpenSearchClient;
+import org.opensearch.migrations.bulkload.common.OpenSearchClientFactory;
+import org.opensearch.migrations.bulkload.common.http.ConnectionContext;
+import org.opensearch.migrations.bulkload.tracing.IRfsContexts;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.SneakyThrows;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -15,6 +22,10 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 
+import static org.mockito.Mockito.mock;
+
+import org.junit.jupiter.api.Assertions;
+
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,17 +35,27 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 public class ClusterOperations {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private final String clusterUrl;
     private final CloseableHttpClient httpClient;
+    private final OpenSearchClient client;
+
 
     public ClusterOperations(final String clusterUrl) {
         this.clusterUrl = clusterUrl;
         httpClient = HttpClients.createDefault();
+
+
+        // Create an instance of TargetArgs with no auth
+        ConnectionContext.TargetArgs targetArgs = new ConnectionContext.TargetArgs();
+        targetArgs.host = clusterUrl;
+        ConnectionContext connectionContext = targetArgs.toConnectionContext();
+        client = new OpenSearchClientFactory(connectionContext).determineVersionAndCreate();
     }
 
-    public void createSnapshotRepository(final String repoPath, final String repoName) throws IOException {
-        // Create snapshot repository
-        final var repositoryJson = "{\n"
+    public void registerSnapshotRepository(final String repoPath, final String repoName) throws IOException {
+        final var settingsJson = "{\n"
             + "  \"type\": \"fs\",\n"
             + "  \"settings\": {\n"
             + "    \"location\": \""
@@ -44,12 +65,12 @@ public class ClusterOperations {
             + "  }\n"
             + "}";
 
-        final var createRepoRequest = new HttpPut(clusterUrl + "/_snapshot/" + repoName);
-        createRepoRequest.setEntity(new StringEntity(repositoryJson));
-        createRepoRequest.setHeader("Content-Type", "application/json");
+        ObjectNode settings = (ObjectNode) objectMapper.readTree(settingsJson);
 
-        try (var response = httpClient.execute(createRepoRequest)) {
-            assertThat(response.getCode(), equalTo(200));
+        try {
+            client.registerSnapshotRepo(repoName, settings, mock(IRfsContexts.ICreateSnapshotContext.class));
+        } catch (Exception e) {
+            Assertions.fail("Snapshot Registration failed - " + e.getClass().getName() + ": " + e.getMessage());
         }
     }
 
@@ -147,23 +168,20 @@ public class ClusterOperations {
         }
     }
 
-    public void takeSnapshot(final String repoName, final String snapshotName, final String indexPattern) throws IOException {
-        final var snapshotJson = "{\n"
+    public void createSnapshot(final String repoName, final String snapshotName, final String indexPattern) throws IOException {
+        final var settingsJson = "{\n"
             + "  \"indices\": \""
             + indexPattern
             + "\",\n"
             + "  \"ignore_unavailable\": true,\n"
             + "  \"include_global_state\": true\n"
             + "}";
+        ObjectNode settings = (ObjectNode) objectMapper.readTree(settingsJson);
 
-        final var createSnapshotRequest = new HttpPut(
-            clusterUrl + "/_snapshot/" + repoName + "/" + snapshotName + "?wait_for_completion=true"
-        );
-        createSnapshotRequest.setEntity(new StringEntity(snapshotJson));
-        createSnapshotRequest.setHeader("Content-Type", "application/json");
-
-        try (var response = httpClient.execute(createSnapshotRequest)) {
-            assertThat(response.getCode(), equalTo(200));
+        try {
+            client.createSnapshot(repoName, snapshotName, settings, true, mock(IRfsContexts.ICreateSnapshotContext.class));
+        } catch (Exception e) {
+            Assertions.fail("Snapshot Registration failed - " + e.getClass().getName() + ": " + e.getMessage());
         }
     }
 

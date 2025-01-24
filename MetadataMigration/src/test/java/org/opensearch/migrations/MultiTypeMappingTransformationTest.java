@@ -47,8 +47,8 @@ class MultiTypeMappingTransformationTest extends BaseMigrationTest {
             indexCreatedOperations.createDocument(originalIndexName, "2", "{\"field1\":\"string\", \"field2\":123}", null, "type2");
             indexCreatedOperations.createDocument(originalIndexName, "3", "{\"field3\":1.1}", null, "type3");
 
-            indexCreatedOperations.createSnapshotRepository(SearchClusterContainer.CLUSTER_SNAPSHOT_DIR, es5Repo);
-            indexCreatedOperations.takeSnapshot(es5Repo, snapshotName, originalIndexName);
+            indexCreatedOperations.registerSnapshotRepository(SearchClusterContainer.CLUSTER_SNAPSHOT_DIR, es5Repo);
+            indexCreatedOperations.createSnapshot(es5Repo, snapshotName, originalIndexName);
             indexCreatedCluster.copySnapshotData(localDirectory.toString());
         }
 
@@ -66,7 +66,7 @@ class MultiTypeMappingTransformationTest extends BaseMigrationTest {
             var upgradedSourceOperations = new ClusterOperations(upgradedSourceCluster.getUrl());
 
             // Register snapshot repository and restore snapshot in ES 6 cluster
-            upgradedSourceOperations.createSnapshotRepository(SearchClusterContainer.CLUSTER_SNAPSHOT_DIR, es5Repo);
+            upgradedSourceOperations.registerSnapshotRepository(SearchClusterContainer.CLUSTER_SNAPSHOT_DIR, es5Repo);
             upgradedSourceOperations.restoreSnapshot(es5Repo, snapshotName);
 
             // Verify index exists on upgraded cluster

@@ -53,7 +53,7 @@ public class SnapshotStateTest {
 
         // Configure operations and rfs implementation
         operations = new ClusterOperations(cluster.getUrl());
-        operations.createSnapshotRepository(SearchClusterContainer.CLUSTER_SNAPSHOT_DIR, "test-repo");
+        operations.registerSnapshotRepository(SearchClusterContainer.CLUSTER_SNAPSHOT_DIR, "test-repo");
         srfs = new SimpleRestoreFromSnapshot_ES_7_10();
     }
 
@@ -73,7 +73,7 @@ public class SnapshotStateTest {
 
         final var snapshotName = "snapshot-1";
         final var repoName = "test-repo";
-        operations.takeSnapshot(repoName, snapshotName, indexName);
+        operations.createSnapshot(repoName, snapshotName, indexName);
 
         final File snapshotCopy = new File(localDirectory + "/snapshotCopy");
         cluster.copySnapshotData(snapshotCopy.getAbsolutePath());
@@ -112,7 +112,7 @@ public class SnapshotStateTest {
         operations.deleteDocument(indexName, document1Id);
         final var snapshotName = "snapshot-delete-item";
         var repoName = "test-repo";
-        operations.takeSnapshot(repoName, snapshotName, indexName);
+        operations.createSnapshot(repoName, snapshotName, indexName);
 
         final File snapshotCopy = new File(localDirectory + "/snapshotCopy");
         cluster.copySnapshotData(snapshotCopy.getAbsolutePath());
@@ -148,7 +148,7 @@ public class SnapshotStateTest {
 
         final var snapshotName = "snapshot-delete-item";
         final var repoName = "test-repo";
-        operations.takeSnapshot(repoName, snapshotName, indexName);
+        operations.createSnapshot(repoName, snapshotName, indexName);
 
         final File snapshotCopy = new File(localDirectory + "/snapshotCopy");
         cluster.copySnapshotData(snapshotCopy.getAbsolutePath());

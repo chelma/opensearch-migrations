@@ -247,9 +247,10 @@ public abstract class OpenSearchClient {
         String repoName,
         String snapshotName,
         ObjectNode settings,
+        boolean waitForCompletion,
         IRfsContexts.ICreateSnapshotContext context
     ) {
-        String targetPath = SNAPSHOT_PREFIX_STR + repoName + "/" + snapshotName;
+        String targetPath = SNAPSHOT_PREFIX_STR + repoName + "/" + snapshotName + "?wait_for_completion=" + String.valueOf(waitForCompletion).toLowerCase();
         client.putAsync(targetPath, settings.toString(), context.createSnapshotContext()).flatMap(resp -> {
             if (resp.statusCode == HttpURLConnection.HTTP_OK) {
                 return Mono.just(resp);

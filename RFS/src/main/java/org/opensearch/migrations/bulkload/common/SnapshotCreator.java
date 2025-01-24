@@ -69,7 +69,7 @@ public abstract class SnapshotCreator {
 
         // Create the snapshot; idempotent operation
         try {
-            client.createSnapshot(getRepoName(), snapshotName, body, context);
+            client.createSnapshot(getRepoName(), snapshotName, body, false, context);
             log.atInfo().setMessage("Snapshot {} creation initiated").addArgument(snapshotName).log();
         } catch (Exception e) {
             log.atError().setCause(e).setMessage("Snapshot {} creation failed").addArgument(snapshotName).log();
